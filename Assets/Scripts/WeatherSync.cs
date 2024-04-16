@@ -9,10 +9,18 @@ using TMPro;
 using System.Net;
 using System.Net.Sockets;
 using System.Linq;
+using DigitalRuby.WeatherMaker;
 
 public class WeatherSync : MonoBehaviour
 {
     private string pcUserIP;
+
+    [Header("Weather Data")]
+    [SerializeField] string cityName;
+    [SerializeField] string currentTemp;
+    [SerializeField] float cloudinessLevel;
+    [SerializeField] string precipitationType;
+    [SerializeField] float visibility;
 
     [Header("Variables")]
     [SerializeField] private float latitude = 49.2827f;
@@ -20,12 +28,16 @@ public class WeatherSync : MonoBehaviour
     [SerializeField] private string APIToken = "56f51b13a444f57726fe8c184b2af580";
     [SerializeField] private string APITokenIP = "053726aa8ee2ea01ab03714166f5c927";
 
-    [Header("References")]
+    [Header("References - Menu")]
     [SerializeField] private TextMeshProUGUI statusText;
     [SerializeField] private TMP_InputField latitudeInput;
     [SerializeField] private TMP_InputField longitudeInput;
     [SerializeField] private GameObject introScreenObj;
     [SerializeField] private GameObject weatherDataOverlay;
+
+    [Header("References - Weather Screen")]
+    [SerializeField] private TextMeshProUGUI cityText;
+    [SerializeField] private TextMeshProUGUI tempText;
 
     private string openWeatherAPIURL = "https://api.openweathermap.org/data/2.5/weather?";
 
@@ -50,7 +62,7 @@ public class WeatherSync : MonoBehaviour
     {
         if (!Input.location.isEnabledByUser)
         {
-            statusText.text = "Location services not enabled!";
+            statusText.text = "Location services not enabled (or not on mobile)!";
             yield break;
         }
 
@@ -103,14 +115,18 @@ public class WeatherSync : MonoBehaviour
 
     private void SetLatitudeAndLongitude(float _latitude, float _longitude)
     {
+        if (_latitude == 0 || _longitude == 0)
+        {
+            statusText.text = "No location returned!";
+            return;
+        }
+
         latitude = _latitude;
         longitude = _longitude;
 
         statusText.text = $"Latitude: {latitude}, Longitude: {longitude}";
         latitudeInput.text = latitude.ToString();
         longitudeInput.text = longitude.ToString();
-
-        //StartCoroutine(GetWeather(latitude.ToString(), longitude.ToString()));
     }
 
     IEnumerator GetWeather(string _latitude, string _longitude)
@@ -137,12 +153,67 @@ public class WeatherSync : MonoBehaviour
             WeatherData weatherData = JsonUtility.FromJson<WeatherData>(weatherRequest.downloadHandler.text);
 
             Debug.Log($"{weatherData.name} weather, timezone: {weatherData.timezone}, {weatherData.weather[0].main}");
-            string temp = weatherOutputJson["main"]["temp"];
 
-            Debug.Log($"{weatherData.weather[0].main}, Temperature: {temp}°C");
+            cityName = weatherData.name.ToString();
+            currentTemp = weatherOutputJson["main"]["temp"].ToString() + "°C";
+            cloudinessLevel = weatherOutputJson["clouds"]["all"];
+            precipitationType = weatherData.weather[0].main.ToString();
+            visibility = weatherData.visibility; // max is 10k, if less than 1k show fog
+
+            cloudinessLevel = 50;
+            precipitationType = "Rain";
+
+            cityText.text = cityName;
+            tempText.text = currentTemp;
 
             weatherDataOverlay.SetActive(true);
             introScreenObj.SetActive(false);
+
+            UpdateWeathermaker();
+        }
+    }
+
+    private void UpdateWeathermaker()
+    {
+        // Precipitation
+        if (precipitationType == "Rain")
+        {
+            WeatherMakerPrecipitationManagerScript.Instance.Precipitation = (WeatherMakerPrecipitationType.Rain);
+            WeatherMakerPrecipitationManagerScript.Instance.PrecipitationIntensity = 0.3f;
+        }
+        else if (precipitationType == "Snow")
+        {
+            WeatherMakerPrecipitationManagerScript.Instance.Precipitation = (WeatherMakerPrecipitationType.Snow);
+            WeatherMakerPrecipitationManagerScript.Instance.PrecipitationIntensity = 0.5f;
+        }
+        
+        // Wind
+        WeatherMakerWindScript.Instance.SetWindProfileAnimated(WeatherMakerScript.Instance.LoadResource<WeatherMakerWindProfileScript>("WeatherMakerWindProfile_MediumWind"), 0.0f, 5.0f);
+
+        // Cloudiness
+        if (cloudinessLevel >= 90)
+        {
+            WeatherMakerFullScreenCloudsScript.Instance.ShowCloudsAnimated(2, "WeatherMakerCloudProfile_Overcast");
+        }
+        else if (cloudinessLevel >= 70)
+        {
+            WeatherMakerFullScreenCloudsScript.Instance.ShowCloudsAnimated(2, "WeatherMakerCloudProfile_HeavyScattered");
+        }
+        else if (cloudinessLevel >= 50)
+        {
+            WeatherMakerFullScreenCloudsScript.Instance.ShowCloudsAnimated(2, "WeatherMakerCloudProfile_MediumScattered");
+        }
+        else if (cloudinessLevel >= 30)
+        {
+            WeatherMakerFullScreenCloudsScript.Instance.ShowCloudsAnimated(2, "WeatherMakerCloudProfile_PartlyCloudy");
+        }
+        else if (cloudinessLevel >= 10)
+        {
+            WeatherMakerFullScreenCloudsScript.Instance.ShowCloudsAnimated(2, "WeatherMakerCloudProfile_LightScattered");
+        }
+        else
+        {
+            WeatherMakerFullScreenCloudsScript.Instance.ShowCloudsAnimated(2, "WeatherMakerCloudProfile_None");
         }
     }
 
@@ -167,8 +238,6 @@ public class WeatherSync : MonoBehaviour
     {
         string requestURL = "http://api.ipstack.com/" + _ipAddress + "?access_key=" + APITokenIP + "&fields=latitude,longitude";
 
-        Debug.Log("Request URL: " + requestURL);
-
         UnityWebRequest ipRequest = UnityWebRequest.Get(requestURL);
 
         yield return ipRequest.SendWebRequest();
@@ -176,15 +245,11 @@ public class WeatherSync : MonoBehaviour
         if (ipRequest.result == UnityWebRequest.Result.ConnectionError ||
         ipRequest.result == UnityWebRequest.Result.ProtocolError)
         {
-            Debug.Log(ipRequest.error);
+            statusText.text = $"Could not get IP: {ipRequest.error}";
         }
         else
         {
-            Debug.Log($"Response code: {ipRequest.responseCode}");
-            Debug.Log($"Response handler: {ipRequest.downloadHandler.text}");
-
             var ipOutputJson = JSON.Parse(ipRequest.downloadHandler.text);
-
             SetLatitudeAndLongitude(ipOutputJson["latitude"], ipOutputJson["longitude"]);
         }
     }
@@ -194,6 +259,7 @@ public class WeatherSync : MonoBehaviour
 public class WeatherData
 {
     public Weather[] weather;
+    public float visibility;
     public float timezone;
     public float id;
     public string name;
@@ -203,8 +269,5 @@ public class WeatherData
 [System.Serializable]
 public class Weather
 {
-    public int id;
     public string main;
-    public string description;
-    public string icon;
 }
