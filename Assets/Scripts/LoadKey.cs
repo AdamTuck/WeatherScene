@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class LoadKey : MonoBehaviour
 {
-    private APIKeys apiKeys = new APIKeys();
+    [SerializeField] private APIKeys apiKeys = new APIKeys();
 
     private void Start()
     {
@@ -13,7 +13,7 @@ public class LoadKey : MonoBehaviour
     {
         //if (Input.GetKeyDown(KeyCode.S))
         //{
-            //SaveToJson();
+        //    SaveToJson();
         //}
     }
 

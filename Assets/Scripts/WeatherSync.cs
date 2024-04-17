@@ -18,7 +18,8 @@ public class WeatherSync : MonoBehaviour
     private string currentDate;
     private float weatherUpdateTimer = 60;
     private DateTime currentDateTime;
-    private bool appStarted = false;
+    private bool appStarted;
+    private bool fullscreen;
 
     [Header("Weather Data")]
     [SerializeField] string cityName;
@@ -79,12 +80,32 @@ public class WeatherSync : MonoBehaviour
     {
         if (appStarted)
             UpdateWeatherAndTime();
+
+        if (Input.GetKeyDown(KeyCode.F11))
+        {
+            ToggleFullscreenApp();
+        }
     }
 
     private void LoadAPIKeys()
     {
         APIToken = loadKey.GetWeatherAPI();
         APITokenIP = loadKey.GetIPAPI();
+    }
+
+    private void ToggleFullscreenApp()
+    {
+        if (fullscreen)
+        {
+            Screen.fullScreenMode = FullScreenMode.Windowed;
+            fullscreen = false;
+        }
+            
+        else
+        {
+            Screen.fullScreenMode = FullScreenMode.ExclusiveFullScreen;
+            fullscreen = true;
+        }
     }
 
     private void UpdateWeatherAndTime()
