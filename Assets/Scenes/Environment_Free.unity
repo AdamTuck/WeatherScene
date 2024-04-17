@@ -1118,8 +1118,9 @@ MonoBehaviour:
   latitude: 49.28166
   longitude: -123.1253
   weatherUpdateFrequency: 60
-  APIToken: 56f51b13a444f57726fe8c184b2af580
-  APITokenIP: 053726aa8ee2ea01ab03714166f5c927
+  APIToken: 
+  APITokenIP: 
+  loadKey: {fileID: 1995141257}
   statusText: {fileID: 240622898}
   latitudeInput: {fileID: 800306068}
   longitudeInput: {fileID: 133851844}
@@ -4612,19 +4613,19 @@ PrefabInstance:
       objectReference: {fileID: 908677584}
     - target: {fileID: 108505579623923364, guid: 66bd18e21212b8c4ab51a96f918b3197, type: 3}
       propertyPath: m_BoundingSphereOverride.w
-      value: 7.1853964e+22
+      value: 3.582e-42
       objectReference: {fileID: 0}
     - target: {fileID: 108505579623923364, guid: 66bd18e21212b8c4ab51a96f918b3197, type: 3}
       propertyPath: m_BoundingSphereOverride.x
-      value: 4.3712362e+24
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 108505579623923364, guid: 66bd18e21212b8c4ab51a96f918b3197, type: 3}
       propertyPath: m_BoundingSphereOverride.y
-      value: 1.6919542e+22
+      value: 6e-44
       objectReference: {fileID: 0}
     - target: {fileID: 108505579623923364, guid: 66bd18e21212b8c4ab51a96f918b3197, type: 3}
       propertyPath: m_BoundingSphereOverride.z
-      value: 5.3991842e-11
+      value: 2e-44
       objectReference: {fileID: 0}
     - target: {fileID: 114189907102477492, guid: 66bd18e21212b8c4ab51a96f918b3197, type: 3}
       propertyPath: AllowCameras.Array.size
@@ -5667,6 +5668,50 @@ Transform:
   m_Children: []
   m_Father: {fileID: 201706615}
   m_LocalEulerAnglesHint: {x: 0, y: 90, z: 0}
+--- !u!1 &1995141256
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1995141258}
+  - component: {fileID: 1995141257}
+  m_Layer: 0
+  m_Name: APILoader
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1995141257
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1995141256}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ebee5304f8e5ecc40a7474984c07dcba, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!4 &1995141258
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1995141256}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 50, y: 10.01648, z: 76.90001}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2016623183
 GameObject:
   m_ObjectHideFlags: 0
@@ -7443,6 +7488,7 @@ SceneRoots:
   - {fileID: 139766769}
   - {fileID: 1656081972}
   - {fileID: 1289752659}
-  - {fileID: 272137093}
   - {fileID: 1250779833}
   - {fileID: 553131160}
+  - {fileID: 272137093}
+  - {fileID: 1995141258}

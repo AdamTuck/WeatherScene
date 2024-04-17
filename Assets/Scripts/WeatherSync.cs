@@ -33,10 +33,11 @@ public class WeatherSync : MonoBehaviour
     [SerializeField] private float latitude = 49.2827f;
     [SerializeField] private float longitude = 123.1207f;
     [SerializeField] private float weatherUpdateFrequency = 60;
-    [SerializeField] private string APIToken = "56f51b13a444f57726fe8c184b2af580";
-    [SerializeField] private string APITokenIP = "053726aa8ee2ea01ab03714166f5c927";
+    [SerializeField] private string APIToken;
+    [SerializeField] private string APITokenIP;
 
     [Header("References - Menu")]
+    [SerializeField] private LoadKey loadKey;
     [SerializeField] private TextMeshProUGUI statusText;
     [SerializeField] private TMP_InputField latitudeInput;
     [SerializeField] private TMP_InputField longitudeInput;
@@ -55,11 +56,13 @@ public class WeatherSync : MonoBehaviour
 
     public void InitializeLocationServices()
     {
+        LoadAPIKeys();
         StartCoroutine(StartLocationService());
     }
 
     public void GetLocationByIPAddress()
     {
+        LoadAPIKeys();
         pcUserIP = GetGlobalIPAddress();
 
         StartCoroutine(GetIPLocation(pcUserIP));
@@ -67,6 +70,7 @@ public class WeatherSync : MonoBehaviour
 
     public void StartWeatherSimulator()
     {
+        LoadAPIKeys();
         appStarted = true;
         StartCoroutine(GetWeather(latitudeInput.text, longitudeInput.text));
     }
@@ -75,6 +79,12 @@ public class WeatherSync : MonoBehaviour
     {
         if (appStarted)
             UpdateWeatherAndTime();
+    }
+
+    private void LoadAPIKeys()
+    {
+        APIToken = loadKey.GetWeatherAPI();
+        APITokenIP = loadKey.GetIPAPI();
     }
 
     private void UpdateWeatherAndTime()
