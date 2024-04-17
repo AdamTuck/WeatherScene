@@ -14,17 +14,25 @@ using DigitalRuby.WeatherMaker;
 public class WeatherSync : MonoBehaviour
 {
     private string pcUserIP;
+    private string currentTime;
+    private string currentDate;
+    private float weatherUpdateTimer = 60;
+    private DateTime currentDateTime;
+    private bool appStarted = false;
 
     [Header("Weather Data")]
     [SerializeField] string cityName;
     [SerializeField] string currentTemp;
     [SerializeField] float cloudinessLevel;
+    [SerializeField] float windSpeed;
     [SerializeField] string precipitationType;
+    [SerializeField] string weatherDescription;
     [SerializeField] float visibility;
 
     [Header("Variables")]
     [SerializeField] private float latitude = 49.2827f;
     [SerializeField] private float longitude = 123.1207f;
+    [SerializeField] private float weatherUpdateFrequency = 60;
     [SerializeField] private string APIToken = "56f51b13a444f57726fe8c184b2af580";
     [SerializeField] private string APITokenIP = "053726aa8ee2ea01ab03714166f5c927";
 
@@ -37,7 +45,11 @@ public class WeatherSync : MonoBehaviour
 
     [Header("References - Weather Screen")]
     [SerializeField] private TextMeshProUGUI cityText;
+    [SerializeField] private TextMeshProUGUI mainText;
+    [SerializeField] private TextMeshProUGUI descText;
     [SerializeField] private TextMeshProUGUI tempText;
+    [SerializeField] private TextMeshProUGUI timeText;
+    [SerializeField] private TextMeshProUGUI dateText;
 
     private string openWeatherAPIURL = "https://api.openweathermap.org/data/2.5/weather?";
 
@@ -55,7 +67,37 @@ public class WeatherSync : MonoBehaviour
 
     public void StartWeatherSimulator()
     {
+        appStarted = true;
         StartCoroutine(GetWeather(latitudeInput.text, longitudeInput.text));
+    }
+
+    private void Update()
+    {
+        if (appStarted)
+            UpdateWeatherAndTime();
+    }
+
+    private void UpdateWeatherAndTime()
+    {
+        currentDateTime = System.DateTime.Now;
+
+        if (currentDateTime.Minute < 10)
+            currentTime = currentDateTime.Hour + ":0" + currentDateTime.Minute;
+        else
+            currentTime = currentDateTime.Hour + ":" + currentDateTime.Minute;
+
+        currentDate = currentDateTime.ToString("MMMM") + " " + currentDateTime.Day + ", " + currentDateTime.Year;
+
+        timeText.text = currentTime;
+        dateText.text = currentDate;
+
+        weatherUpdateTimer += Time.deltaTime;
+
+        if (weatherUpdateTimer >= weatherUpdateFrequency)
+        {
+            weatherUpdateTimer = 0;
+            StartCoroutine(GetWeather(latitude.ToString(), longitude.ToString()));
+        }
     }
 
     private IEnumerator StartLocationService()
@@ -158,13 +200,16 @@ public class WeatherSync : MonoBehaviour
             currentTemp = weatherOutputJson["main"]["temp"].ToString() + "°C";
             cloudinessLevel = weatherOutputJson["clouds"]["all"];
             precipitationType = weatherData.weather[0].main.ToString();
-            visibility = weatherData.visibility; // max is 10k, if less than 1k show fog
-
-            cloudinessLevel = 50;
-            precipitationType = "Rain";
+            visibility = weatherData.visibility;
+            windSpeed = weatherOutputJson["wind"]["speed"];
+            weatherDescription = weatherData.weather[0].description.ToString();
 
             cityText.text = cityName;
             tempText.text = currentTemp;
+            mainText.text = precipitationType;
+            descText.text = weatherDescription;
+
+            UpdateWeatherAndTime();
 
             weatherDataOverlay.SetActive(true);
             introScreenObj.SetActive(false);
@@ -175,20 +220,68 @@ public class WeatherSync : MonoBehaviour
 
     private void UpdateWeathermaker()
     {
+        // Time
+        float secondsSinceMidnight = ((currentDateTime.Hour * 60) + currentDateTime.Minute) * 60 + currentDateTime.Second;
+        Debug.Log($"Seconds since midnight: {secondsSinceMidnight}");
+        WeatherMakerDayNightCycleManagerScript.Instance.TimeOfDay = secondsSinceMidnight;
+
         // Precipitation
         if (precipitationType == "Rain")
         {
             WeatherMakerPrecipitationManagerScript.Instance.Precipitation = (WeatherMakerPrecipitationType.Rain);
-            WeatherMakerPrecipitationManagerScript.Instance.PrecipitationIntensity = 0.3f;
+            WeatherMakerPrecipitationManagerScript.Instance.PrecipitationIntensity = 0.7f;
+        }
+        else if (precipitationType == "Drizzle")
+        {
+            WeatherMakerPrecipitationManagerScript.Instance.Precipitation = (WeatherMakerPrecipitationType.Rain);
+            WeatherMakerPrecipitationManagerScript.Instance.PrecipitationIntensity = 0.25f;
         }
         else if (precipitationType == "Snow")
         {
             WeatherMakerPrecipitationManagerScript.Instance.Precipitation = (WeatherMakerPrecipitationType.Snow);
             WeatherMakerPrecipitationManagerScript.Instance.PrecipitationIntensity = 0.5f;
         }
-        
+
+        //Fog
+        if (visibility <= 1000)
+        {
+            WeatherMakerFullScreenFogScript.Instance.TransitionFogDensity(0, 0.2f, 2);
+        }
+        else if (visibility <= 3000)
+        {
+            WeatherMakerFullScreenFogScript.Instance.TransitionFogDensity(0, 0.1f, 2);
+        }
+        else if (visibility <= 6000)
+        {
+            WeatherMakerFullScreenFogScript.Instance.TransitionFogDensity(0, 0.05f, 2);
+        }
+        else if (visibility <= 9000)
+        {
+            WeatherMakerFullScreenFogScript.Instance.TransitionFogDensity(0, 0.01f, 2);
+        }
+        else
+        {
+            WeatherMakerFullScreenFogScript.Instance.TransitionFogDensity(0, 0, 0);
+        }
+
         // Wind
-        WeatherMakerWindScript.Instance.SetWindProfileAnimated(WeatherMakerScript.Instance.LoadResource<WeatherMakerWindProfileScript>("WeatherMakerWindProfile_MediumWind"), 0.0f, 5.0f);
+        if (windSpeed > 30)
+        {
+            WeatherMakerWindScript.Instance.SetWindProfileAnimated(WeatherMakerScript.Instance.LoadResource<WeatherMakerWindProfileScript>("WeatherMakerWindProfile_HeavyWind"), 0.0f, 5.0f);
+        }
+        else if (windSpeed > 20)
+        {
+            WeatherMakerWindScript.Instance.SetWindProfileAnimated(WeatherMakerScript.Instance.LoadResource<WeatherMakerWindProfileScript>("WeatherMakerWindProfile_MediumWind"), 0.0f, 5.0f);
+        }
+        else if (windSpeed > 10)
+        {
+            WeatherMakerWindScript.Instance.SetWindProfileAnimated(WeatherMakerScript.Instance.LoadResource<WeatherMakerWindProfileScript>("WeatherMakerWindProfile_LightWind"), 0.0f, 5.0f);
+        }
+        else
+        {
+            WeatherMakerWindScript.Instance.SetWindProfileAnimated(WeatherMakerScript.Instance.LoadResource<WeatherMakerWindProfileScript>("WeatherMakerWindProfile_None"), 0.0f, 5.0f);
+        }
+        
 
         // Cloudiness
         if (cloudinessLevel >= 90)
@@ -205,11 +298,11 @@ public class WeatherSync : MonoBehaviour
         }
         else if (cloudinessLevel >= 30)
         {
-            WeatherMakerFullScreenCloudsScript.Instance.ShowCloudsAnimated(2, "WeatherMakerCloudProfile_PartlyCloudy");
+            WeatherMakerFullScreenCloudsScript.Instance.ShowCloudsAnimated(2, "WeatherMakerCloudProfile_LightScattered");
         }
         else if (cloudinessLevel >= 10)
         {
-            WeatherMakerFullScreenCloudsScript.Instance.ShowCloudsAnimated(2, "WeatherMakerCloudProfile_LightScattered");
+            WeatherMakerFullScreenCloudsScript.Instance.ShowCloudsAnimated(2, "WeatherMakerCloudProfile_PartlyCloudy");
         }
         else
         {
@@ -270,4 +363,5 @@ public class WeatherData
 public class Weather
 {
     public string main;
+    public string description;
 }
